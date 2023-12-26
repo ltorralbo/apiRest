@@ -5,6 +5,7 @@ import com.apirest.apirest.model.ERole;
 import com.apirest.apirest.model.RoleEntity;
 import com.apirest.apirest.model.UserEntity;
 import com.apirest.apirest.repository.UserRepository;
+import com.apirest.apirest.utils.Utils;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -33,10 +34,15 @@ public class UserController {
     }
 
     @PostMapping("/createUser")
-    public ResponseEntity<?> createUser(@Valid @RequestBody CreateUserDTO createUserDTO){
+    public ResponseEntity<?> createUser(@Valid @RequestBody CreateUserDTO createUserDTO,
+                                        @RequestHeader("Authorization") String jwtToken){
 
         if (userRepository.existsByEmail(createUserDTO.getEmail())) {
             return ResponseEntity.badRequest().body("{\"mensaje\":\"El correo ya existe.\"}");
+        }
+
+        if (!Utils.validarPassword(createUserDTO.getPassword())) {
+            return ResponseEntity.badRequest().body("{\"mensaje\":\"El formato de la contraseña no es válido.\"}");
         }
 
         Set<RoleEntity> roles = createUserDTO.getRoles().stream()
@@ -54,10 +60,19 @@ public class UserController {
 
         userRepository.save(userEntity);
 
+        if (jwtToken != null && jwtToken.startsWith("Bearer ")) {
+            String  token = jwtToken.substring(7); // Obtener el token sin el prefijo "Bearer "
+
+            // Tu lógica para almacenar el token en el objeto UserEntity
+            userEntity.setToken(token);
+        }
+
         LocalDateTime fechaActual = LocalDateTime.now();
 
         userEntity.setCreated(fechaActual);
         userEntity.setModified(fechaActual);
+        userEntity.setUuid(Utils.crearUUID());
+        //return new ResponseEntity<String>("{\"mensaje\":\"Bien lo lograste!\"}", HttpStatus.OK);
 
         return ResponseEntity.ok(userEntity);
     }

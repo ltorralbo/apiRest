@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 @Data
 @AllArgsConstructor
@@ -26,6 +27,8 @@ public class UserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    private UUID uuid;
 
     @Email
     @NotBlank
@@ -48,4 +51,7 @@ public class UserEntity {
 
     @Column(name = "modified")
     private LocalDateTime modified;
+
+    @Column(name = "token")
+    private String token;
 }

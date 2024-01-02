@@ -29,14 +29,14 @@ public class UserEntity {
 
     private UUID uuid;
 
-    @Email
+    @Email(message = "Formato de email incorrecto :C")
     @NotBlank
     @Size(max = 80)
     @Column(unique = true)
     private String email;
 
-    @NotBlank
-    @Size(max = 30)
+    @NotBlank(message = "Este campo debe ser ingresado")
+    @Size(max = 30, message = "Solo puede tener max 30 caracteres")
     private String username;
 
     @NotBlank

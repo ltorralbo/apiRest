@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -40,6 +41,11 @@ public class UserEntity {
     private String username;
 
     @NotBlank
+    @Pattern(
+            regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d.*\\d)[A-Za-z\\d]{4,}$",
+            message = "La contraseña debe contener al menos una mayúscula, letras minúsculas y dos números"
+    )
+    @Size(min = 4, message = "La longitud mínima de la contraseña es 4 caracteres")
     private String password;
 
     @ManyToMany(fetch = FetchType.EAGER, targetEntity = RoleEntity.class, cascade = CascadeType.PERSIST)

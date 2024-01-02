@@ -45,10 +45,6 @@ public class UserController {
         UserEntity clienteNew = null;
         Map<String, Object> response = new HashMap<>();
 
-        if (userRepository.existsByEmail(createUserDTO.getEmail())) {
-                return ResponseEntity.badRequest().body("{\"mensaje\":\"El correo ya existe.\"}");
-        }
-
         if(result.hasErrors()){
             List<String> errors = result.getFieldErrors()
                     .stream()
@@ -61,6 +57,14 @@ public class UserController {
         }
 
         try{
+
+//            if (userRepository.existsByEmail(createUserDTO.getEmail())) {
+//                return ResponseEntity.badRequest().body("{\"mensaje\":\"El correo ya existe.\"}");
+//            }
+//
+//            if (!Utils.validarPassword(createUserDTO.getPassword())) {
+//                return ResponseEntity.badRequest().body("{\"mensaje\":\"El formato de la contraseña no es válido.\"}");
+//            }
 
             Set<RoleEntity> roles = createUserDTO.getRoles().stream()
                     .map(role -> RoleEntity.builder()

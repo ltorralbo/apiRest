@@ -11,8 +11,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
 
@@ -33,6 +32,7 @@ public class UserEntity {
     @Email
     @NotBlank
     @Size(max = 80)
+    @Column(unique = true)
     private String email;
 
     @NotBlank
@@ -46,12 +46,22 @@ public class UserEntity {
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<RoleEntity> roles;
 
-    @Column(name = "fecha_creacion")
-    private LocalDateTime created;
+    @Column(name = "created")
+    @Temporal(TemporalType.DATE)
+    private Date created;
+
+    @PrePersist
+    public void prePersist(){
+        created = new Date();
+        modified = new Date();
+    }
 
     @Column(name = "modified")
-    private LocalDateTime modified;
+    private Date modified;
 
     @Column(name = "token")
     private String token;
+
+    @Column(name = "isActive")
+    private Boolean isActive = false;
 }

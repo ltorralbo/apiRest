@@ -8,11 +8,16 @@ import com.apirest.apirest.repository.UserRepository;
 import com.apirest.apirest.utils.Utils;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 @RestController
@@ -37,49 +42,71 @@ public class UserController {
     public ResponseEntity<?> createUser(@Valid @RequestBody CreateUserDTO createUserDTO,
                                         @RequestHeader("Authorization") String jwtToken){
 
-        if (userRepository.existsByEmail(createUserDTO.getEmail())) {
-            return ResponseEntity.badRequest().body("{\"mensaje\":\"El correo ya existe.\"}");
+        UserEntity clienteNew = null;
+        Map<String, Object> response = new HashMap<>();
+
+        try{
+
+            if (userRepository.existsByEmail(createUserDTO.getEmail())) {
+                return ResponseEntity.badRequest().body("{\"mensaje\":\"El correo ya existe.\"}");
+            }
+
+            if (!Utils.validarPassword(createUserDTO.getPassword())) {
+                return ResponseEntity.badRequest().body("{\"mensaje\":\"El formato de la contraseña no es válido.\"}");
+            }
+
+            Set<RoleEntity> roles = createUserDTO.getRoles().stream()
+                    .map(role -> RoleEntity.builder()
+                            .name(ERole.valueOf(role))
+                            .build())
+                    .collect(Collectors.toSet());
+
+            UserEntity userEntity = UserEntity.builder()
+                    .username(createUserDTO.getUsername())
+                    .password(passwordEncoder.encode(createUserDTO.getPassword()))
+                    .email(createUserDTO.getEmail())
+                    .roles(roles)
+                    .build();
+
+            if (jwtToken != null && jwtToken.startsWith("Bearer ")) {
+                String  token = jwtToken.substring(7); // Obtener el token sin el prefijo "Bearer "
+                // Tu lógica para almacenar el token en el objeto UserEntity
+                userEntity.setToken(token);
+            }
+
+            userEntity.setUuid(Utils.crearUUID());
+
+            clienteNew = userRepository.save(userEntity);
+        }catch(DataAccessException e){
+            response.put("mensaje: ", "Error al guardar al cliente en bd");
+            response.put("error", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+            return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        if (!Utils.validarPassword(createUserDTO.getPassword())) {
-            return ResponseEntity.badRequest().body("{\"mensaje\":\"El formato de la contraseña no es válido.\"}");
-        }
+        response.put("mensaje: ", "El cliente ha sido creado con éxito");
+        response.put("usuario: ", clienteNew);
+        return new ResponseEntity<Map<String, Object>>(response, HttpStatus.CREATED);
+    }
 
-        Set<RoleEntity> roles = createUserDTO.getRoles().stream()
-                .map(role -> RoleEntity.builder()
-                        .name(ERole.valueOf(role))
-                        .build())
-                .collect(Collectors.toSet());
+    @PutMapping("/update/{id}")
+    @ResponseStatus(HttpStatus.CREATED)
+    public UserEntity update(@RequestBody CreateUserDTO createUserDTO, @PathVariable Long id){
+
+        Optional<UserEntity> user =  userRepository.findById(id);
 
         UserEntity userEntity = UserEntity.builder()
                 .username(createUserDTO.getUsername())
                 .password(passwordEncoder.encode(createUserDTO.getPassword()))
                 .email(createUserDTO.getEmail())
-                .roles(roles)
                 .build();
 
-        userRepository.save(userEntity);
-
-        if (jwtToken != null && jwtToken.startsWith("Bearer ")) {
-            String  token = jwtToken.substring(7); // Obtener el token sin el prefijo "Bearer "
-
-            // Tu lógica para almacenar el token en el objeto UserEntity
-            userEntity.setToken(token);
-        }
-
-        LocalDateTime fechaActual = LocalDateTime.now();
-
-        userEntity.setCreated(fechaActual);
-        userEntity.setModified(fechaActual);
-        userEntity.setUuid(Utils.crearUUID());
-        //return new ResponseEntity<String>("{\"mensaje\":\"Bien lo lograste!\"}", HttpStatus.OK);
-
-        return ResponseEntity.ok(userEntity);
+        return userRepository.save(userEntity);
     }
 
-    @DeleteMapping("/deleteUser")
-    public String deleteUser(@RequestParam String id){
-        userRepository.deleteById(Long.parseLong(id));
-        return "Se ha borrado el user con id".concat(id);
+    @DeleteMapping("/deleteUser/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id){
+        userRepository.deleteById(id);
     }
+
     }
